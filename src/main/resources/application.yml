@@ -1,107 +1,102 @@
+spring:
+  application:
+    name: stockox-subscription-service
 
-  spring:
-    application:
-      name: stockox-subscription-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
-    profiles:
-      active: dev
-
-    mail:
-      host: smtp.zoho.in
-      port: 587
-      username: stockoxindia@zohomail.in
-      password: 3dURiNv0zR9u
-
-      properties:
-        mail:
-          smtp:
-            auth: true
-            starttls:
-              enable: true
-
-    datasource:
-      url: jdbc:postgresql://localhost:5433/stockox_subscriptions_dev
-      username: stockox_user
-      password: 1234
-      driver-class-name: org.postgresql.Driver
-
-    jpa:
-      hibernate:
-        ddl-auto: update
-      show-sql: true
-      open-in-view: false
-      properties:
-        hibernate:
-          format_sql: true
-          default_batch_fetch_size: 20
-
-    cloud:
-      config:
-        enabled: false
-        import-check:
-          enabled: false
-
-    data:
-      redis:
-        host: ${REDIS_HOST:localhost}
-        port: ${REDIS_PORT:6379}
-        timeout: 2000ms
-        repositories:
-          enabled: false
-
-  server:
-    port: 8082
-
-  eureka:
-    client:
-      enabled: false
-      register-with-eureka: false
-      fetch-registry: false
-
-  management:
-    health:
-      redis:
-        enabled: false
+  mail:
+    host: ${MAIL_HOST:smtp.zoho.in}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:stockoxindia@zohomail.in}
+    password: ${MAIL_PASSWORD:3dURiNv0zR9u}
+    properties:
       mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/stockox_subscriptions_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:stockox_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 20
+
+  cloud:
+    config:
+      enabled: false
+      import-check:
         enabled: false
-    endpoints:
-      web:
-        exposure:
-          include: health,info
 
-  logging:
-    level:
-      org.springframework.security: DEBUG
-      org.hibernate.SQL: DEBUG
-      com.stockox: DEBUG
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      repositories:
+        enabled: false
 
-  app:
-    jwt:
-      secret: ${JWT_SECRET:ImsSecretKey2024!ChangeThisInProductionMin32Chars}
+server:
+  port: ${SERVER_PORT:8082}
 
-    frontend-url: ${FRONTEND_URL:http://localhost:3000}
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
 
-  razorpay:
-    key:
-      id: ${RAZORPAY_KEY_ID:rzp_test_SkjI2f04NKNnat}
-      secret: ${RAZORPAY_KEY_SECRET:wFtQMiszhLgpys0DWK78JKsZ}
-    currency: INR
+management:
+  health:
+    redis:
+      enabled: false
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info
 
-  subscription:
-    trial-days: 14
-    gst-rate: 0.18
+logging:
+  level:
+    org.springframework.security: ${LOG_LEVEL:INFO}
+    org.hibernate.SQL: ${LOG_LEVEL:INFO}
+    com.stockox: ${LOG_LEVEL:INFO}
 
-  feign:
-    client:
-      config:
-        default:
-          connectTimeout: 5000
-          readTimeout: 5000
+app:
+  jwt:
+    secret: ${JWT_SECRET:ImsSecretKey2024!ChangeThisInProductionMin32Chars}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
 
-  services:
-    product-service:
-      url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+razorpay:
+  key:
+    id: ${RAZORPAY_KEY_ID:rzp_test_SkjI2f04NKNnat}
+    secret: ${RAZORPAY_KEY_SECRET:wFtQMiszhLgpys0DWK78JKsZ}
+  currency: INR
 
-    user-service:
-      url: ${USER_SERVICE_URL:http://localhost:8081}
+subscription:
+  trial-days: 14
+  gst-rate: 0.18
 
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+
+services:
+  product-service:
+    url: ${PRODUCT_SERVICE_URL:http://localhost:8083}
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
