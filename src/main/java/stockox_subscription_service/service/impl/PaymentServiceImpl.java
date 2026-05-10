@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.annotation.PostConstruct;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;          // FIXED: correct import
 import org.springframework.stereotype.Service;
@@ -63,6 +64,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Value("${subscription.gst-rate:0.18}")
     private double gstRate;
+
+    // Cached once at startup — the Razorpay secret never changes at runtime
+    private SecretKeySpec razorpaySigningKey;
+
+    @PostConstruct
+    private void initRazorpaySigningKey() {
+        this.razorpaySigningKey = new SecretKeySpec(
+                razorpaySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    }
 
     // ── Step 1: Create Razorpay order ─────────────────────────────────
     @Override
@@ -206,12 +216,11 @@ public class PaymentServiceImpl implements PaymentService {
     // ── HMAC-SHA256 verification ───────────────────────────────────────
     private void verifyRazorpaySignature(String orderId, String paymentId, String signature) {
         try {
-            String payload   = orderId + "|" + paymentId;
-            Mac mac          = Mac.getInstance("HmacSHA256");
-            SecretKeySpec k  = new SecretKeySpec(
-                    razorpaySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(k);
-            String expected  = HexFormat.of().formatHex(
+            String payload  = orderId + "|" + paymentId;
+            Mac mac         = Mac.getInstance("HmacSHA256");
+            // Use pre-built key — avoids constructing SecretKeySpec on every verification call
+            mac.init(razorpaySigningKey);
+            String expected = HexFormat.of().formatHex(
                     mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
 
             if (!expected.equals(signature)) {

@@ -1,5 +1,6 @@
 package stockox_subscription_service.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,8 +20,8 @@ import java.util.UUID;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-
 public class JwtAuthFilter extends OncePerRequestFilter {
+
     private final JwtUtil jwtUtil;
 
     @Override
@@ -33,16 +34,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String authHeader = request.getHeader("Authorization");
             String token = jwtUtil.extractFromHeader(authHeader);
 
-            if (token == null || !jwtUtil.isValid(token) || !jwtUtil.isAccessToken(token)) {
+            if (token == null) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            String userId   = jwtUtil.extractUserId(token);
-            UUID tenantId   = jwtUtil.extractTenantId(token);
-            String role     = jwtUtil.extractRole(token);
+            // Parse JWT claims exactly ONCE — avoids 5 separate crypto-verify operations
+            Claims claims = jwtUtil.extractClaimsSafely(token);
+
+            if (claims == null || !"access".equals(claims.get("type", String.class))) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String userId = claims.getSubject();
+            String tenantIdStr = claims.get("tenantId", String.class);
+            String role = claims.get("role", String.class);
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                UUID tenantId = UUID.fromString(tenantIdStr);
 
                 // Store tenantId in request so controllers can read it easily
                 request.setAttribute("tenantId", tenantId);

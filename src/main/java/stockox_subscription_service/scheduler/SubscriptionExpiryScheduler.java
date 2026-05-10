@@ -51,6 +51,8 @@ public class SubscriptionExpiryScheduler {
         Plan starterPlan = planRepository.findByTier(PlanTier.STARTER)
                 .orElse(null);
 
+        List<Subscription> paidToSave = new java.util.ArrayList<>();
+
         for (Subscription sub : expiredPaid) {
             log.warn("Expiring subscription — tenant={} plan={} endDate={}",
                     sub.getTenantId(), sub.getPlan().getTier(), sub.getEndDate());
@@ -65,24 +67,30 @@ public class SubscriptionExpiryScheduler {
                 log.info("  Downgraded tenant={} to STARTER", sub.getTenantId());
             }
 
-            subscriptionRepository.save(sub);
+            paidToSave.add(sub);
             evictCache(sub.getTenantId().toString());
             expiredCount++;
         }
+        // Batch-save all expired paid subscriptions in one round-trip
+        subscriptionRepository.saveAll(paidToSave);
 
         // ── 2. Expire trial subscriptions ────────────────────────────────
         List<Subscription> expiredTrials = subscriptionRepository
                 .findByStatusAndTrialEndDateBefore(SubscriptionStatus.TRIAL, now);
+
+        List<Subscription> trialsToSave = new java.util.ArrayList<>();
 
         for (Subscription sub : expiredTrials) {
             log.info("Trial expired — tenant={} trialEnd={}", sub.getTenantId(), sub.getTrialEndDate());
             sub.setStatus(SubscriptionStatus.EXPIRED);
 
             // Keep on STARTER plan (they were already on it during trial)
-            subscriptionRepository.save(sub);
+            trialsToSave.add(sub);
             evictCache(sub.getTenantId().toString());
             trialCount++;
         }
+        // Batch-save all expired trial subscriptions in one round-trip
+        subscriptionRepository.saveAll(trialsToSave);
 
         log.info("SubscriptionExpiryScheduler — done. Expired paid={}, trials={}", expiredCount, trialCount);
     }

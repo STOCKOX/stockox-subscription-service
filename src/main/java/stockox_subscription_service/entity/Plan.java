@@ -11,7 +11,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "plans")
+@Table(
+        name = "plans",
+        indexes = {
+                @Index(name = "idx_plan_tier",       columnList = "tier"),
+                @Index(name = "idx_plan_active_sort", columnList = "is_active, sort_order")
+        }
+)
 @Data
 @Builder
 @NoArgsConstructor
